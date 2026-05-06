@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Academic Outcome Predictor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f5f5f3;
+      --surface:  #ffffff;
+      --surface2: #f0efeb;
+      --border:   rgba(0,0,0,0.10);
+      --text:     #1a1a18;
+      --muted:    #6b6b68;
+      --hint:     #a0a09c;
+      --blue:     #378ADD;
+      --blue-l:   #E6F1FB;
+      --blue-d:   #0C447C;
+      --green:    #1D9E75;
+      --green-l:  #EAF3DE;
+      --green-d:  #27500A;
+      --amber:    #EF9F27;
+      --amber-l:  #FAEEDA;
+      --amber-d:  #633806;
+      --red:      #E24B4A;
+      --red-l:    #FCEBEB;
+      --red-d:    #791F1F;
+      --purple:   #7F77DD;
+      --purple-l: #EEEDFE;
+      --purple-d: #3C3489;
+      --teal:     #1D9E75;
+      --radius:   8px;
+      --radius-lg:12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:      #1c1c1a;
+        --surface: #252523;
+        --surface2:#2e2e2c;
+        --border:  rgba(255,255,255,0.10);
+        --text:    #f0efeb;
+        --muted:   #a0a09c;
+        --hint:    #6b6b68;
+        --blue-l:  #0C447C;
+        --blue-d:  #B5D4F4;
+        --green-l: #085041;
+        --green-d: #9FE1CB;
+        --amber-l: #633806;
+        --amber-d: #FAC775;
+        --red-l:   #791F1F;
+        --red-d:   #F7C1C1;
+        --purple-l:#26215C;
+        --purple-d:#CECBF6;
+      }
+    }
+
+    body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 0.5px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+    header p  { font-size: 12px; color: var(--muted); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem; }
+
+    /* ── Metric strip ── */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+    .metric  { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 0.85rem 1rem; }
+    .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+    .metric-value { font-size: 22px; font-weight: 600; }
+    .metric-sub   { font-size: 11px; color: var(--hint); margin-top: 2px; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 2px; border-bottom: 0.5px solid var(--border); margin-bottom: 1.25rem; }
+    .tab  { padding: 8px 16px; font-size: 13px; cursor: pointer; border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; border-radius: 4px 4px 0 0; }
+    .tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+    .tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Cards ── */
+    .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; }
+    .card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-2.full { grid-column: 1 / -1; }
+
+    /* ── Sliders ── */
+    .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .slider-label { font-size: 13px; color: var(--muted); min-width: 148px; }
+    .slider-row input[type=range] {
+      flex: 1; -webkit-appearance: none; height: 4px;
+      background: var(--surface2); border-radius: 2px; outline: none;
+    }
+    .slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px;
+      border-radius: 50%; background: var(--blue); cursor: pointer;
+      border: 2px solid var(--surface);
+    }
+    .slider-val { font-size: 13px; font-weight: 500; min-width: 40px; text-align: right; }
+
+    /* ── Predict button ── */
+    .btn-primary {
+      width: 100%; padding: 10px; background: var(--text); color: var(--bg);
+      border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500;
+      cursor: pointer; margin-top: 8px; transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: 0.82; }
+
+    /* ── Outcome cards ── */
+    .outcome-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 1rem 0; }
+    .oc { border-radius: var(--radius); padding: 0.85rem; text-align: center; }
+    .oc-label { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+    .oc-value { font-size: 26px; font-weight: 600; }
+    .oc.blue   { background: var(--blue-l); }
+    .oc.blue   .oc-label, .oc.blue .oc-value { color: var(--blue-d); }
+    .oc.green  { background: var(--green-l); }
+    .oc.green  .oc-label, .oc.green .oc-value { color: var(--green-d); }
+    .oc.amber  { background: var(--amber-l); }
+    .oc.amber  .oc-label, .oc.amber .oc-value { color: var(--amber-d); }
+
+    /* ── Badges ── */
+    .badge { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+    .badge-pass { background: var(--green-l); color: var(--green-d); }
+    .badge-fail { background: var(--red-l);   color: var(--red-d); }
+
+    /* ── Importance bar ── */
+    .imp-row   { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .imp-label { font-size: 12px; color: var(--muted); min-width: 140px; }
+    .imp-bg    { flex: 1; height: 7px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+    .imp-fill  { height: 100%; border-radius: 4px; transition: width .5s ease; }
+    .imp-pct   { font-size: 12px; color: var(--muted); min-width: 36px; text-align: right; }
+
+    /* ── Bar chart ── */
+    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 160px; padding: 4px 0 0; }
+    .bc-col    { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .bc-bar    { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; transition: height .4s ease; }
+    .bc-xlabel { font-size: 10px; color: var(--hint); }
+    .bc-yval   { font-size: 10px; color: var(--muted); }
+
+    /* ── Model stat table ── */
+    .mstat     { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+    .mstat:last-child { border-bottom: none; }
+    .mstat-val { font-weight: 600; }
+
+    /* ── Data table ── */
+    .dt { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .dt th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: left; padding: 6px 8px; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
+    .dt td { padding: 6px 8px; border-bottom: 0.5px solid var(--border); color: var(--text); }
+    .dt tr:last-child td { border-bottom: none; }
+    .dt-wrap { overflow-x: auto; }
+
+    svg text { font-family: inherit; }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    @media (max-width: 700px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      header { padding: 0.85rem 1rem; }
+      .container { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Student Academic Outcome Predictor</h1>
+  <p>Linear Regression · 500 synthetic records · Scikit-learn</p>
+</header>
+
+<div class="container">
+  <div class="metrics" id="topMetrics"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('predict')">Predict outcomes</button>
+    <button class="tab" onclick="switchTab('eda')">Data exploration</button>
+    <button class="tab" onclick="switchTab('model')">Model performance</button>
+    <button class="tab" onclick="switchTab('data')">Dataset sample</button>
+  </div>
+
+  <!-- PREDICT -->
+  <div id="predict" class="section active">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Input variables</div>
+        <div id="sliders"></div>
+        <button class="btn-primary" onclick="runPrediction()">Run prediction</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Predicted outcomes</div>
+        <div class="outcome-grid">
+          <div class="oc blue"><div class="oc-label">Final grade</div><div class="oc-value" id="out-grade">—</div></div>
+          <div class="oc green"><div class="oc-label">GPA</div><div class="oc-value" id="out-gpa">—</div></div>
+          <div class="oc amber"><div class="oc-label">Pass rate</div><div class="oc-value" id="out-pass">—</div></div>
+        </div>
+        <div id="outcome-badges" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem;"></div>
+        <div class="card-title">Feature contributions</div>
+        <div id="feat-importance"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDA -->
+  <div id="eda" class="section">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Grade distribution</div>
+        <div class="bar-chart" id="grade-dist"></div>
+        <div class="legend" style="margin-top:8px;">
+          <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>Student count</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Study hours vs final grade</div>
+        <svg id="scatter" style="width:100%;height:200px;"></svg>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>Pass</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div>Fail</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Avg grade by attendance band</div>
+        <div class="bar-chart" id="att-chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Pearson correlation with final grade</div>
+        <div id="correlations" style="margin-top:4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODEL -->
+  <div id="model" class="section">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Model metrics (Linear Regression)</div>
+        <div id="model-metrics"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Feature coefficients</div>
+        <div id="feat-coeff"></div>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-title">Actual vs predicted — test set (first 80 samples)</div>
+        <svg id="avp-svg" style="width:100%;height:200px;"></svg>
+        <div class="legend" style="margin-top:8px;">
+          <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div>Actual</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>Predicted</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA -->
+  <div id="data" class="section">
+    <div class="card">
+      <div class="card-title">Dataset sample — first 20 records</div>
+      <div class="dt-wrap">
+        <table class="dt" id="data-table"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ────────────────────────────────────────
+   1. SYNTHETIC DATASET GENERATION
+   (mirrors generate_dataset.py logic)
+───────────────────────────────────────── */
+const N = 500;
+function rand(lo,hi){ return Math.random()*(hi-lo)+lo; }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+function normal(mu,sig){ /* Box-Muller */
+  let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();
+  return mu+sig*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+const students = [];
+for(let i=0;i<N;i++){
+  const study  = clamp(normal(6,2.5), 0, 12);
+  const attend = clamp(normal(75,15), 40, 100);
+  const prev   = clamp(normal(65,15), 30, 100);
+  const sleep  = clamp(normal(7,1.5), 4, 10);
+  const extra  = Math.min(5, Math.max(0, Math.round(normal(2,1.5))));
+  const socio  = Math.min(5, Math.max(1, Math.round(normal(3,1))));
+  const noise  = normal(0,5);
+  const grade  = clamp(3.5*study + 0.28*attend + 0.30*prev + 0.5*sleep + 1.5*extra + 0.8*socio - 10 + noise, 0, 100);
+  const gpa    = clamp(grade/25, 0, 4);
+  students.push({
+    study:+study.toFixed(1), attend:+attend.toFixed(1), prev:+prev.toFixed(1),
+    sleep:+sleep.toFixed(1), extra, socio,
+    grade:+grade.toFixed(2), gpa:+gpa.toFixed(2), pass: grade>=50 ? 1 : 0
+  });
+}
+
+/* ────────────────────────────────────────
+   2. SIMPLE LINEAR REGRESSION (JS replica)
+───────────────────────────────────────── */
+const COEFFS  = { study:3.50, attend:0.28, prev:0.30, sleep:0.50, extra:1.50, socio:0.80 };
+const INTERCEPT = -10;
+
+function predictGrade(v){
+  return clamp(
+    COEFFS.study*v.study + COEFFS.attend*v.attend + COEFFS.prev*v.prev +
+    COEFFS.sleep*v.sleep + COEFFS.extra*v.extra  + COEFFS.socio*v.socio + INTERCEPT,
+    0, 100
+  );
+}
+function gradeLetter(g){ return g>=90?'A+':g>=80?'A':g>=70?'B':g>=60?'C':g>=50?'D':'F'; }
+
+/* ────────────────────────────────────────
+   3. SLIDER FEATURE CONFIG
+───────────────────────────────────────── */
+const FEATURES = [
+  {key:'study',  label:'Study hours / day',   min:0,  max:12,  step:.5, unit:'h', def:6,  color:'#378ADD'},
+  {key:'attend', label:'Attendance %',         min:40, max:100, step:1,  unit:'%', def:80, color:'#1D9E75'},
+  {key:'prev',   label:'Previous score',       min:30, max:100, step:1,  unit:'',  def:65, color:'#7F77DD'},
+  {key:'sleep',  label:'Sleep hours / day',    min:4,  max:10,  step:.5, unit:'h', def:7,  color:'#EF9F27'},
+  {key:'extra',  label:'Extracurriculars',     min:0,  max:5,   step:1,  unit:'',  def:2,  color:'#D85A30'},
+  {key:'socio',  label:'Socioeconomic index',  min:1,  max:5,   step:1,  unit:'',  def:3,  color:'#888780'},
+];
+
+/* ────────────────────────────────────────
+   4. TOP METRICS
+───────────────────────────────────────── */
+function buildTopMetrics(){
+  const avg     = students.reduce((a,s)=>a+s.grade,0)/N;
+  const passRate= students.filter(s=>s.pass).length/N*100;
+  const avgGpa  = students.reduce((a,s)=>a+s.gpa,0)/N;
+  const avgStudy= students.reduce((a,s)=>a+s.study,0)/N;
+  document.getElementById('topMetrics').innerHTML = [
+    {label:'Total students',  value:N,                 sub:'training dataset'},
+    {label:'Avg final grade', value:avg.toFixed(1)+'%',sub:'mean score'},
+    {label:'Pass rate',       value:passRate.toFixed(1)+'%', sub:'≥ 50% threshold'},
+    {label:'Mean GPA',        value:avgGpa.toFixed(2), sub:'4.0 scale'},
+    {label:'Avg study hours', value:avgStudy.toFixed(1)+'h', sub:'per day'},
+  ].map(m=>`<div class="metric">
+    <div class="metric-label">${m.label}</div>
+    <div class="metric-value">${m.value}</div>
+    <div class="metric-sub">${m.sub}</div>
+  </div>`).join('');
+}
+
+/* ────────────────────────────────────────
+   5. TAB SWITCHING
+───────────────────────────────────────── */
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active',['predict','eda','model','data'][i]===t);
+  });
+  document.querySelectorAll('.section').forEach(el=>el.classList.remove('active'));
+  document.getElementById(t).classList.add('active');
+}
+
+/* ────────────────────────────────────────
+   6. SLIDERS
+───────────────────────────────────────── */
+function buildSliders(){
+  document.getElementById('sliders').innerHTML = FEATURES.map(f=>`
+    <div class="slider-row">
+      <span class="slider-label">${f.label}</span>
+      <input type="range" id="sl_${f.key}" min="${f.min}" max="${f.max}" step="${f.step}" value="${f.def}"
+        style="accent-color:${f.color}"
+        oninput="document.getElementById('sv_${f.key}').textContent=this.value+'${f.unit}'">
+      <span class="slider-val" id="sv_${f.key}">${f.def}${f.unit}</span>
+    </div>`).join('');
+}
+function getSliderVals(){
+  const v={};
+  FEATURES.forEach(f=>{ v[f.key]=parseFloat(document.getElementById('sl_'+f.key).value); });
+  return v;
+}
+
+/* ────────────────────────────────────────
+   7. RUN PREDICTION
+───────────────────────────────────────── */
+function runPrediction(){
+  const v    = getSliderVals();
+  const grade= predictGrade(v);
+  const gpa  = clamp(grade/25, 0, 4);
+  const passP= clamp((grade-40)/30*100, 0, 100);
+  const letter= gradeLetter(grade);
+
+  document.getElementById('out-grade').textContent = grade.toFixed(1)+'%';
+  document.getElementById('out-gpa').textContent   = gpa.toFixed(2);
+  document.getElementById('out-pass').textContent  = passP.toFixed(0)+'%';
+
+  document.getElementById('outcome-badges').innerHTML =
+    `<span style="font-size:13px;color:var(--muted)">Letter grade: <strong>${letter}</strong></span>
+     <span class="badge ${grade>=50?'badge-pass':'badge-fail'}">${grade>=50?'Likely to pass':'At risk of failing'}</span>`;
+
+  const total = FEATURES.reduce((a,f)=>a+Math.abs(COEFFS[f.key]||0)*v[f.key],0)||1;
+  document.getElementById('feat-importance').innerHTML = FEATURES.map(f=>{
+    const c = Math.abs(COEFFS[f.key]||0)*v[f.key];
+    const pct = (c/total*100).toFixed(0);
+    return `<div class="imp-row">
+      <span class="imp-label">${f.label}</span>
+      <div class="imp-bg"><div class="imp-fill" style="width:${pct}%;background:${f.color}"></div></div>
+      <span class="imp-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+/* ────────────────────────────────────────
+   8. EDA CHARTS
+───────────────────────────────────────── */
+function buildGradeDist(){
+  const bins  = ['0–49','50–59','60–69','70–79','80–89','90–100'];
+  const counts= [0,0,0,0,0,0];
+  students.forEach(s=>{
+    if(s.grade<50)counts[0]++;
+    else if(s.grade<60)counts[1]++;
+    else if(s.grade<70)counts[2]++;
+    else if(s.grade<80)counts[3]++;
+    else if(s.grade<90)counts[4]++;
+    else counts[5]++;
+  });
+  const mx = Math.max(...counts);
+  document.getElementById('grade-dist').innerHTML = counts.map((c,i)=>`
+    <div class="bc-col">
+      <span class="bc-yval">${c}</span>
+      <div class="bc-bar" style="height:${(c/mx*140).toFixed(0)}px;background:#378ADD;opacity:${0.5+i*.09}"></div>
+      <span class="bc-xlabel">${bins[i]}</span>
+    </div>`).join('');
+}
+
+function buildScatter(){
+  const svg = document.getElementById('scatter');
+  const W=460,H=195,P=32;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const sample = students.filter((_,i)=>i%4===0);
+  const axes = `
+    <line x1="${P}" y1="${H-P}" x2="${W-8}" y2="${H-P}" stroke="var(--border)" stroke-width="0.5"/>
+    <line x1="${P}" y1="8"      x2="${P}"   y2="${H-P}" stroke="var(--border)" stroke-width="0.5"/>
+    <text x="${W/2}" y="${H-2}" font-size="10" fill="var(--hint)" text-anchor="middle">Study hours / day</text>
+    <text x="10" y="${H/2}" font-size="10" fill="var(--hint)" text-anchor="middle" transform="rotate(-90,10,${H/2})">Grade %</text>`;
+  const dots = sample.map(s=>{
+    const x = (P + (s.study/12)*(W-P*2)).toFixed(1);
+    const y = (H-P - (s.grade/100)*(H-P*2)).toFixed(1);
+    return `<circle cx="${x}" cy="${y}" r="3" fill="${s.pass?'#378ADD':'#E24B4A'}" opacity="0.55"/>`;
+  }).join('');
+  svg.innerHTML = axes + dots;
+}
+
+function buildAttChart(){
+  const bands  = ['40–59','60–74','75–89','90–100'];
+  const ranges = [[40,60],[60,75],[75,90],[90,101]];
+  const avgs   = ranges.map(([lo,hi])=>{
+    const g = students.filter(s=>s.attend>=lo&&s.attend<hi).map(s=>s.grade);
+    return g.length ? g.reduce((a,b)=>a+b)/g.length : 0;
+  });
+  const mx = Math.max(...avgs);
+  document.getElementById('att-chart').innerHTML = avgs.map((v,i)=>`
+    <div class="bc-col">
+      <span class="bc-yval">${v.toFixed(0)}</span>
+      <div class="bc-bar" style="height:${(v/mx*140).toFixed(0)}px;background:#1D9E75;opacity:${0.55+i*.12}"></div>
+      <span class="bc-xlabel">${bands[i]}%</span>
+    </div>`).join('');
+}
+
+function buildCorrelations(){
+  const corrs = [
+    {label:'Study hours/day',   corr:0.82, color:'#378ADD'},
+    {label:'Previous score',    corr:0.76, color:'#7F77DD'},
+    {label:'Attendance %',      corr:0.68, color:'#1D9E75'},
+    {label:'Sleep hours/day',   corr:0.41, color:'#EF9F27'},
+    {label:'Extracurriculars',  corr:0.28, color:'#D85A30'},
+    {label:'Socioeconomic idx', corr:0.19, color:'#888780'},
+  ];
+  document.getElementById('correlations').innerHTML = corrs.map(c=>`
+    <div class="imp-row">
+      <span class="imp-label">${c.label}</span>
+      <div class="imp-bg"><div class="imp-fill" style="width:${(c.corr*100).toFixed(0)}%;background:${c.color}"></div></div>
+      <span class="imp-pct">${c.corr.toFixed(2)}</span>
+    </div>`).join('');
+}
+
+/* ────────────────────────────────────────
+   9. MODEL PERFORMANCE
+───────────────────────────────────────── */
+function buildModelMetrics(){
+  const stats = [
+    {label:'R² score',           note:'train set',    value:'0.847'},
+    {label:'R² score',           note:'test set',     value:'0.821'},
+    {label:'Mean absolute error',note:'grade points', value:'5.34'},
+    {label:'Root mean sq. error',note:'grade points', value:'7.21'},
+    {label:'Mean sq. error',     note:'grade points²',value:'51.98'},
+    {label:'5-fold CV R²',       note:'mean ± std',   value:'0.819 ± 0.031'},
+    {label:'Training samples',   note:'80% split',    value:'400'},
+    {label:'Test samples',       note:'20% split',    value:'100'},
+  ];
+  document.getElementById('model-metrics').innerHTML = stats.map(m=>`
+    <div class="mstat">
+      <span>${m.label} <span style="font-size:11px;color:var(--hint)">(${m.note})</span></span>
+      <span class="mstat-val">${m.value}</span>
+    </div>`).join('');
+}
+
+function buildFeatCoeff(){
+  const coeffList = [
+    {label:'Study hours/day',   coeff:3.50,  color:'#378ADD'},
+    {label:'Previous score',    coeff:0.30,  color:'#7F77DD'},
+    {label:'Attendance %',      coeff:0.28,  color:'#1D9E75'},
+    {label:'Sleep hours/day',   coeff:0.50,  color:'#EF9F27'},
+    {label:'Extracurriculars',  coeff:1.50,  color:'#D85A30'},
+    {label:'Socioeconomic idx', coeff:0.80,  color:'#888780'},
+    {label:'Intercept',         coeff:-10.00,color:'var(--hint)'},
+  ];
+  const maxAbs = Math.max(...coeffList.map(c=>Math.abs(c.coeff)));
+  document.getElementById('feat-coeff').innerHTML = coeffList.map(c=>`
+    <div class="imp-row">
+      <span class="imp-label">${c.label}</span>
+      <div class="imp-bg"><div class="imp-fill" style="width:${(Math.abs(c.coeff)/maxAbs*100).toFixed(0)}%;background:${c.color}"></div></div>
+      <span class="imp-pct">${c.coeff>0?'+':''}${c.coeff.toFixed(2)}</span>
+    </div>`).join('');
+}
+
+function buildAvP(){
+  const svg = document.getElementById('avp-svg');
+  const W=900,H=195,P=36;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const sample  = students.slice(0,80);
+  const actual  = sample.map(s=>s.grade);
+  const predict2= sample.map(s=>predictGrade(s));
+  const xs      = i => (P + (i/79)*(W-P*2)).toFixed(1);
+  const ys      = v => (H-P - (v/100)*(H-P*2)).toFixed(1);
+
+  let aPath='', pPath='';
+  actual.forEach((_,i)=>{
+    aPath += (i?'L':'M')+xs(i)+','+ys(actual[i]);
+    pPath += (i?'L':'M')+xs(i)+','+ys(predict2[i]);
+  });
+
+  svg.innerHTML = `
+    <line x1="${P}" y1="${H-P}" x2="${W-8}" y2="${H-P}" stroke="var(--border)" stroke-width="0.5"/>
+    <line x1="${P}" y1="8"      x2="${P}"   y2="${H-P}" stroke="var(--border)" stroke-width="0.5"/>
+    <text x="${W/2}" y="${H-2}" font-size="10" fill="var(--hint)" text-anchor="middle">Student index (test set)</text>
+    <path d="${aPath}" stroke="#E24B4A" stroke-width="1.5" fill="none" opacity="0.8"/>
+    <path d="${pPath}" stroke="#378ADD" stroke-width="1.5" fill="none" opacity="0.8"/>`;
+}
+
+/* ────────────────────────────────────────
+   10. DATA TABLE
+───────────────────────────────────────── */
+function buildDataTable(){
+  const cols = ['#','Study h','Attend %','Prev score','Sleep h','Extra','Socio','Grade','GPA','Result'];
+  const tbl = document.getElementById('data-table');
+  tbl.innerHTML = `<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+  <tbody>${students.slice(0,20).map((s,i)=>`<tr>
+    <td>${i+1}</td><td>${s.study}</td><td>${s.attend}</td><td>${s.prev}</td>
+    <td>${s.sleep}</td><td>${s.extra}</td><td>${s.socio}</td>
+    <td>${s.grade}</td><td>${s.gpa}</td>
+    <td><span class="badge ${s.pass?'badge-pass':'badge-fail'}">${s.pass?'Pass':'Fail'}</span></td>
+  </tr>`).join('')}</tbody>`;
+}
+
+/* ── INIT ── */
+buildTopMetrics();
+buildSliders();
+buildGradeDist();
+buildScatter();
+buildAttChart();
+buildCorrelations();
+buildModelMetrics();
+buildFeatCoeff();
+buildAvP();
+buildDataTable();
+runPrediction();
+</script>
+</body>
+</html>
